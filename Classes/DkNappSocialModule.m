@@ -88,11 +88,7 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, "custom_activity");
 }
 
 - (NSNumber *)isActivitySupported {
-  BOOL available = NO;
-  if (NSClassFromString(@"UIActivityViewController")) {
-    available = YES;
-  }
-  return NUMBOOL(available); //This can call this to let them know if this feature is supported
+  return @(YES);
 }
 
 - (NSNumber *)isTwitterSupported:(id)args {
@@ -105,20 +101,20 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, "custom_activity");
   }
 }
 
-- (NSNumber *)isRequestTwitterSupported:(id)args { //for iOS6 twitter
-  return [TiUtils isIOS6OrGreater] ? [self isNetworkSupported:SLServiceTypeTwitter] : NUMBOOL(NO);
+- (NSNumber *)isRequestTwitterSupported:(id)args {
+  return [self isNetworkSupported:SLServiceTypeTwitter];
 }
 
 - (NSNumber *)isFacebookSupported:(id)args {
-  return [TiUtils isIOS6OrGreater] ? [self isNetworkSupported:SLServiceTypeFacebook] : NUMBOOL(NO);
+  return [self isNetworkSupported:SLServiceTypeFacebook];
 }
 
 - (NSNumber *)isSinaWeiboSupported:(id)args {
-  return [TiUtils isIOS6OrGreater] ? [self isNetworkSupported:SLServiceTypeSinaWeibo] : NUMBOOL(NO);
+  return [self isNetworkSupported:SLServiceTypeSinaWeibo];
 }
 
 - (NSNumber *)isActivityViewSupported:(id)args {
-  return [TiUtils isIOS6OrGreater] ? [self isActivitySupported] : NUMBOOL(NO);
+  return [self isActivitySupported];
 }
 
 - (UIImage *)findImage:(NSString *)imagePath {
@@ -791,9 +787,7 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, "custom_activity");
 
       NSDictionary *event = @{
         @"success" : @YES,
-        @"platform" : @"activityView",
-        @"activity" : activity,
-        @"activityName" : activityType
+        @"platform" : @"activityView"
       };
       [self fireEvent:@"complete" withObject:event];
     }
