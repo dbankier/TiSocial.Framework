@@ -5,12 +5,17 @@
  * Appcelerator Titanium is Copyright (c) 2009-2010 by Appcelerator, Inc.
  * and licensed under the Apache Public License (version 2)
  */
+
+#define USE_TI_UIBUTTON
+
 #import "DkNappSocialModule.h"
 #import "NappCustomActivity.h"
 #import "NappImageProvider.h"
 #import "NappItemProvider.h"
 #import "TiApp.h"
 #import "TiBase.h"
+#import "TiBlob.h"
+#import "TiUIButtonProxy.h"
 #import "TiHost.h"
 #import "TiUtils.h"
 
@@ -92,11 +97,7 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
 }
 
 - (NSNumber *)isActivitySupported {
-  BOOL available = NO;
-  if (NSClassFromString(@"UIActivityViewController")) {
-    available = YES;
-  }
-  return NUMBOOL(available); //This can call this to let them know if this feature is supported
+  return @(YES);
 }
 
 - (NSNumber *)isTwitterSupported:(id)args {
@@ -109,20 +110,20 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
   }
 }
 
-- (NSNumber *)isRequestTwitterSupported:(id)args { //for iOS6 twitter
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isNetworkSupported:SLServiceTypeTwitter] : NUMBOOL(NO);
+- (NSNumber *)isRequestTwitterSupported:(id)args {
+  return [self isNetworkSupported:SLServiceTypeTwitter];
 }
 
 - (NSNumber *)isFacebookSupported:(id)args {
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isNetworkSupported:SLServiceTypeFacebook] : NUMBOOL(NO);
+  return [self isNetworkSupported:SLServiceTypeFacebook];
 }
 
 - (NSNumber *)isSinaWeiboSupported:(id)args {
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isNetworkSupported:SLServiceTypeSinaWeibo] : NUMBOOL(NO);
+  return [self isNetworkSupported:SLServiceTypeSinaWeibo];
 }
 
 - (NSNumber *)isActivityViewSupported:(id)args {
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isActivitySupported] : NUMBOOL(NO);
+  return [self isActivitySupported];
 }
 
 - (UIImage *)findImage:(NSString *)imagePath {
@@ -795,9 +796,7 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
 
       NSDictionary *event = @{
         @"success" : @YES,
-        @"platform" : @"activityView",
-        @"activity" : activity,
-        @"activityName" : activityType
+        @"platform" : @"activityView"
       };
       [self fireEvent:@"complete" withObject:event];
     }
