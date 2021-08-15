@@ -5,12 +5,17 @@
  * Appcelerator Titanium is Copyright (c) 2009-2010 by Appcelerator, Inc.
  * and licensed under the Apache Public License (version 2)
  */
+
+#define USE_TI_UIBUTTON
+
 #import "DkNappSocialModule.h"
 #import "NappCustomActivity.h"
 #import "NappImageProvider.h"
 #import "NappItemProvider.h"
 #import "TiApp.h"
 #import "TiBase.h"
+#import "TiBlob.h"
+#import "TiUIButtonProxy.h"
 #import "TiHost.h"
 #import "TiUtils.h"
 
