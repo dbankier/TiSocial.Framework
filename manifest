@@ -2,7 +2,7 @@
 # this is your module manifest and used by Titanium
 # during compilation, packaging, distribution, etc.
 #
-version: 3.0.0
+version: 3.0.1
 architectures: i386 arm64
 apiversion: 2
 description: Social.Framework Module
