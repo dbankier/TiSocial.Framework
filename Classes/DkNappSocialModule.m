@@ -5,12 +5,17 @@
  * Appcelerator Titanium is Copyright (c) 2009-2010 by Appcelerator, Inc.
  * and licensed under the Apache Public License (version 2)
  */
+
+#define USE_TI_UIBUTTON
+
 #import "DkNappSocialModule.h"
 #import "NappCustomActivity.h"
 #import "NappImageProvider.h"
 #import "NappItemProvider.h"
 #import "TiApp.h"
 #import "TiBase.h"
+#import "TiBlob.h"
+#import "TiUIButtonProxy.h"
 #import "TiHost.h"
 #import "TiUtils.h"
 
@@ -92,11 +97,7 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
 }
 
 - (NSNumber *)isActivitySupported {
-  BOOL available = NO;
-  if (NSClassFromString(@"UIActivityViewController")) {
-    available = YES;
-  }
-  return NUMBOOL(available); //This can call this to let them know if this feature is supported
+  return @(YES);
 }
 
 - (NSNumber *)isTwitterSupported:(id)args {
@@ -109,20 +110,20 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
   }
 }
 
-- (NSNumber *)isRequestTwitterSupported:(id)args { //for iOS6 twitter
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isNetworkSupported:SLServiceTypeTwitter] : NUMBOOL(NO);
+- (NSNumber *)isRequestTwitterSupported:(id)args {
+  return [self isNetworkSupported:SLServiceTypeTwitter];
 }
 
 - (NSNumber *)isFacebookSupported:(id)args {
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isNetworkSupported:SLServiceTypeFacebook] : NUMBOOL(NO);
+  return [self isNetworkSupported:SLServiceTypeFacebook];
 }
 
 - (NSNumber *)isSinaWeiboSupported:(id)args {
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isNetworkSupported:SLServiceTypeSinaWeibo] : NUMBOOL(NO);
+  return [self isNetworkSupported:SLServiceTypeSinaWeibo];
 }
 
 - (NSNumber *)isActivityViewSupported:(id)args {
-  return [TiUtils isIOSVersionOrGreater:@"6.0"] ? [self isActivitySupported] : NUMBOOL(NO);
+  return [self isActivitySupported];
 }
 
 - (UIImage *)findImage:(NSString *)imagePath {
@@ -216,11 +217,21 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
   SLComposeViewController *controller = [SLComposeViewController composeViewControllerForServiceType:service];
   SLComposeViewControllerCompletionHandler myBlock = ^(SLComposeViewControllerResult result) {
     if (result == SLComposeViewControllerResultCancelled) {
-      NSDictionary *event = [NSDictionary dictionaryWithObjectsAndKeys:NUMBOOL(NO), @"success", platform, @"platform", nil];
-      [self fireEvent:@"cancelled" withObject:event];
+      if ([self _hasListeners:@"cancelled"]) {
+        NSDictionary *event = @{
+          @"success": @(NO),
+          @"platform": platform
+        };
+        [self fireEvent:@"cancelled" withObject:event];
+      }
     } else {
-      NSDictionary *event = [NSDictionary dictionaryWithObjectsAndKeys:NUMBOOL(YES), @"success", platform, @"platform", nil];
-      [self fireEvent:@"complete" withObject:event];
+      if ([self _hasListeners:@"complete"]) {
+        NSDictionary *event = @{
+          @"success": @(YES),
+          @"platform": platform
+        };
+        [self fireEvent:@"complete" withObject:event];
+      }
     }
     [controller dismissViewControllerAnimated:YES completion:Nil];
   };
@@ -813,9 +824,7 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
 
       NSDictionary *event = @{
         @"success" : @YES,
-        @"platform" : @"activityView",
-        @"activity" : activity,
-        @"activityName" : activityType
+        @"platform" : @"activityView"
       };
       [self fireEvent:@"complete" withObject:event];
     }
@@ -958,18 +967,10 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
     [avc setExcludedActivityTypes:excludedIcons];
   }
 
-  // iOS 8 and later should use the item handler instead
-  if ([TiUtils isIOSVersionOrGreater:@"8.0"]) {
-    [avc setCompletionWithItemsHandler:^(NSString *activityType, BOOL completed, NSArray *returnedItems, NSError *activityError) {
-      [self fireActivityEventWithActivityType:activityType completed:completed];
-      [avc setCompletionWithItemsHandler:nil];
-    }];
-  } else {
-    [avc setCompletionWithItemsHandler:^(UIActivityType _Nullable activityType, BOOL completed, NSArray *_Nullable returnedItems, NSError *_Nullable activityError) {
-      [self fireActivityEventWithActivityType:activityType completed:completed];
-      [avc setCompletionWithItemsHandler:nil];
-    }];
-  }
+  [avc setCompletionWithItemsHandler:^(NSString *activityType, BOOL completed, NSArray *returnedItems, NSError *activityError) {
+    [self fireActivityEventWithActivityType:activityType completed:completed];
+    [avc setCompletionWithItemsHandler:nil];
+  }];
 
   // popOver
   popoverController = [[UIPopoverController alloc] initWithContentViewController:avc];
@@ -986,7 +987,7 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
       return;
 
       // Button /View inside window
-    } else if ([TiUtils isIOSVersionOrGreater:@"8.0"]) {
+    } else {
 
       // iOS 8 and later
       [avc setModalPresentationStyle:UIModalPresentationPopover];
@@ -999,12 +1000,6 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
       presentationController.delegate = self;
 
       [[TiApp app] showModalController:avc animated:YES];
-
-    } else {
-
-      // iOS 7 and earlier
-      UIView *sourceView = [senderButton view];
-      [popoverController presentPopoverFromRect:sourceView.frame inView:[[[TiApp controller] topPresentedController] view] permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
     }
   },
       YES);
@@ -1060,6 +1055,10 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
 #pragma mark Helper
 
 - (void)fireActivityEventWithActivityType:(NSString *)activityName completed:(BOOL)completed {
+  if (![self _hasListeners:@"complete"]) {
+    return;
+  }
+
   if (completed == NO) {
     NSDictionary *event = @{
       @"success" : NUMBOOL(NO),
@@ -1077,8 +1076,8 @@ MAKE_SYSTEM_STR(ACTIVITY_CUSTOM, CUSTOM_ACTIVITY);
     NSDictionary *event = @{
       @"success" : NUMBOOL(YES),
       @"platform" : @"activityPopover",
-      @"activity" : activity,
-      @"activityName" : activityName
+      @"activity" : NULL_IF_NIL(activity),
+      @"activityName" : NULL_IF_NIL(activityName)
     };
 
     [self fireEvent:@"complete" withObject:event];
